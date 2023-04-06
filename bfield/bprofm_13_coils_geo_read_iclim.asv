@@ -1,0 +1,312 @@
+icantlength=.3;
+icantdiam=.09;
+fontsize=14;
+%f_i=6.5e6; %ion heating frequency (Hz)
+fec=28e9;
+m_i=2;  %ion mass relative to H
+%b_ci=f_i/15.2e6*m_i;% Magnetic field where f_i = ion cyc freq
+%iantmid=.5*(z0(9)+cl(9)+z0(10));iantlength=.25;iantdiam=.09;
+%iant_x=iantmid-.5*iantlength+[0,iantlength,iantlength,0,0];
+B_3ce=fec/28e9/3;
+B_2ce=fec/28e9/2;
+B_ce=2*B_2ce;
+
+zicantmid=.5*(z0(9)+cl(9)+z0(10));
+zicant_l=zicantmid-.5*icantlength;
+zicant_r=zicantmid+.5*icantlength;
+%zicant_l=z0(9)+(1.385+(3.854-3.5)/2)*.0254;
+%zicant_r=zicant_l+icantlength;
+%zicantmid=zicant_l+icantlength*.5;
+zprobe=.5*(z0(6)+cl(6)+z0(7));
+zskim=zprobe+.1;
+
+icant_x=zicant_l+[0,icantlength,icantlength,0,0];
+iant1=find(zvec <= min(tube_x),1,'last');
+iant2=find(zvec >= max(tube_x),1,'first');
+shotno=28950;
+
+
+
+[t,coil_curs]=read_mdsg('machops1',char('ps1_i','ps3_v','ps2_i','tr1_i','tr2_i'),shotno); 
+coil_curs(:,[1,3:5])=coil_curs(:,[1,3:5])*1000.;
+coil_curs(:,2)=coil_curs(:,2)*382.6/2;
+if max(coil_curs(:,2)) > 1000
+    coil_curs(:,2)=hel_cur;
+end
+coil_curs(:,6)=0.;
+coil_curs(:,4)=542.;
+%coil_curs(:,4)=0.;
+
+
+icant_y=.5*icantdiam*[0,0,1,1,0];
+fontweight='normal';
+ant_mid=.5*(z0(3)+cl(3)+z0(4));
+window_x=[-.15,-.15,.15,.15,-.15]+ant_mid;
+window_y=[-.0625,.0625,.0625,-.0626,-.0625];
+skimmer_x=[-.005,-.005,.005,.005,-.005]+z0(5)+cl(5)/2+.0702;
+skimmer_d=.07;
+%skimmer_d=.057;
+skimmer_y1=[skimmer_d/2,.15/2,.15/2,skimmer_d/2,skimmer_d/2];
+skimmer_y2=-skimmer_y1;
+%tube_x=[0,0,24*.0254,24*.0254,0]+z0(7)-.0254;
+tube_l=z0(8)+cl(8)+(1.5-(3.85-2.5)/2)*.0254;
+tube_r=tube_l+24*.0254;
+
+tube_x=[tube_l,tube_l,tube_r,tube_r,tube_l];
+tube_y=[-.0366,.0366,.0366,-.0366,-.0366];
+ant_x=[2.03,2.18,2.18,2.03,2.03];
+ant_y=[.028,.028,.034,.034,.028];
+
+% MPEX like limiter 
+in2m = 0.0254;
+d1 = 5.834*in2m;
+skimmerholder.r = 2.5*in2m;
+limiter.h = 3e-3; % Thickness of limiter
+limiter.w = 30e-2;
+limiter2.h=3.e-3;
+
+limiter.z1 = max(window_x) + 1e-2;
+% limiter.z2 = helicon.z2 + 14e-2 - 0.5e-2;
+limiter.z2 = limiter.z1 + limiter.w;
+limiter.z = [limiter.z1,limiter.z2];
+limiter.zmid = mean(limiter.z);
+limiter.r = skimmerholder.r - limiter.h;
+
+limiter2.z1 = limiter.z2 + 3e-2;
+limiter2.z2 = limiter.z2 + 5e-2 - 0.5e-2;
+limiter2.z = [limiter2.z1,limiter2.z2];
+limiter2.zmid = mean(limiter2.z);
+limiter2.r = 0.5*d1;
+
+
+
+lim_x=[limiter.z1,limiter.z1,limiter.z2,limiter.z2,limiter.z1];
+lim_y=[limiter.r,limiter.r+limiter.h,limiter.r+limiter.h,limiter.r,limiter.r];
+
+lim2_x=[limiter2.z1,limiter2.z1,limiter2.z2,limiter2.z2,limiter2.z1];
+lim2_y=[limiter2.r,limiter2.r+limiter.h,limiter2.r+limiter2.h,limiter2.r,limiter2.r];
+xloc_left=find(zvec<min(window_x),1,'last');
+xloc_right=find(zvec >max(window_x),1,'first');
+xloc2_left=find(zvec<min(lim_x),1,'last');
+xloc2_right=find(zvec>max(lim_x),1,'first');
+
+
+rloc1=max(window_y);
+rloc2=min(lim_y);
+rlocs=[.0001,.01:.01:.06];
+
+rlocic=max(icant_y);
+
+lhres=.1650;
+b_lh_x=[0,1];
+b_lh_y=[1,1]*lhres;
+%rlocs=.01*[1.46,1.51,1.59,1.66,1.86,2.03,2.08,2.11,2.14,2.67,2.77];
+%rlocs=[.01,.02,.03,.04,.05,.06,.0625];
+tube_radius=.0366;
+geop=get_Proto_geometry2(0,0,1,2,1);
+tube_x=[geop.sleeve.z1,geop.sleeve.z1,geop.sleeve.z2,geop.sleeve.z2,geop.sleeve.z1];
+%tube_y=[-.04,.04,.04,-.04,-.04];
+tube_y=[-.0366,.0366,.0366,-.0366,-.0366];
+%power_supply_numbers: 1-PS1 2-PS3 3-PS2 4-TR1 5-TR2
+pwr_sup_nos=[1,4,2,2,6,1,5,5,3,3,3,3,3];
+avepts=4700:4900;
+
+cur=mean(coil_curs(avepts,pwr_sup_nos),1);
+[br,bz,psi]=B_coaxial_coilsm(brg,bzg,atg,avec,cur);
+
+
+bt=sqrt(br.^2+bz.^2);
+bt2=sqrt(br2.^2+bz2.^2);
+bt0=bt(1,:);
+bta=bt(1,:);
+b_ant=mean(bta(iant1:iant2));
+bma=max(bta);
+%Calculate helicon average magnetic field
+bhelav=mean(bta(1,fix(.5*(xloc_left+xloc_right))+ (-1:1)'));
+ialocl=find(bta(iant1:iant2) == min(bta(iant1:iant2)));
+ialoc=ialocl+iant1;
+%ic_reg=find(zvec > .5*(z0(6)+cl(6)+z0(7)) & zvec < z0(10));
+%ixc=1:length(ic_reg)-1;
+ixc=1:length(zvec)-1;
+%iloc1=find(bta(ic_reg(ixc)) <= b_ci & bta(ic_reg(ixc+1)) > b_ci,1,'first');
+%iloc2=find(bta(ic_reg(ixc)) >= b_ci & bta(ic_reg(ixc+1)) < b_ci,1,'last');
+%ilocs_plgrad=find(bta(ixc) <= b_ci & bta(ixc+1) > b_ci & zvec(ixc+1) < zicantmid);
+%ilocs_negrad=find(bta(ixc) >= b_ci & bta(ixc+1) < b_ci & zvec(ixc) > zicantmid);
+%ireslocs=find((bta(ixc) <= b_ci & bta(ixc+1) > b_ci) | (bta(ixc)>= b_ci & bta(ixc+1) < b_ci));
+%zreslocs=(bt0(ireslocs+1)-b_ci)./(bt0(ireslocs+1)-bt0(ireslocs)).*(zvec(ireslocs+1)-zvec(ireslocs))+zvec(ireslocs);
+%if ~isempty(zreslocs)
+%    z_ant_dist=zeros(1,length(zreslocs));
+%    label_reslocs='';
+%    for ires=1:length(zreslocs)
+%        if zreslocs(ires) < zicant_l    
+%         label_reslocs=[label_reslocs,num2str(zicant_l-zreslocs(ires),'%5.3f'),' '];
+%        elseif zreslocs(ires) > zicant_r
+%         label_reslocs=[label_reslocs,num2str(zreslocs(ires)-zicant_r,'%5.3f'),' '];  
+%        elseif zreslocs(ires) < zicantmid
+%          label_reslocs=[label_reslocs,num2str(zicant_l-zreslocs(ires),'%5.3f'),' '];   
+%        else
+%          label_reslocs=[label_reslocs,num2str(zreslocs(ires)-zicant_r,'%5.3f'),' ']; 
+%        end
+%    end
+%else
+%    label_reslocs='N/A';
+%end
+    
+%idist=icantmid-zvec(ic_reg);
+%iloc1=find(idist == min(idist));
+%ziloc1=(b_ci-bta(ic_reg(iloc1)))/(bta(ic_reg(iloc1)+1)-bta(ic_reg(il%oc1)))...
+   % *(zvec(ic_reg(iloc1)+1)-zvec(ic_reg(iloc1)))+zvec(ic_reg(iloc1));
+%ic_reg=ilocs_negrad;
+%idist=zvec(ic_reg)-icantmid;
+%iloc2=find(idist == min(idist));
+%ziloc2=(b_ci-bta(ic_reg(iloc2)))/(bta(ic_reg(iloc2)+1)-bta(ic_reg(iloc2)))...
+%    *(zvec(ic_reg(iloc2)+1)-zvec(ic_reg(iloc2)))+zvec(ic_reg(iloc2));
+
+%if isempty(ziloc1),ziloc1=0;end
+%if isempty(ziloc2),ziloc2=0;end
+%xloc_left=find(zvec < tube_x(1));
+
+
+ bmina=min(bta(xloc_left:xloc_right));
+ bmin2=min(bta(xloc2_left:xloc2_right));
+ bminic=min(bta(iant1:iant2));
+ bmloc=find(bta(xloc_left:xloc_right)==bmina)+xloc_left-1;
+ bmloc2=find(bta(xloc2_left:xloc2_right)==bmin2)+xloc2_left-1;
+ bmlocic=find(bta(iant1:iant2)==bminic)+iant1-1;
+ disp([(bta(bmloc)),bta(bmloc2),bmina,bmin2])
+m1_x=[z0(1),z0(1)+cl(1),z0(1)+cl(1),z0(1),z0(1)];
+m2_x=[z0(2),z0(2)+cl(2),z0(2)+cl(2),z0(2),z0(2)];
+m3_x=[z0(3),z0(3)+cl(3),z0(3)+cl(3),z0(3),z0(3)];
+m4_x=[z0(4),z0(4)+cl(4),z0(4)+cl(4),z0(4),z0(4)];
+m5_x=[z0(5),z0(5)+cl(5),z0(5)+cl(5),z0(5),z0(5)];
+m6_x=[z0(6),z0(6)+cl(6),z0(6)+cl(6),z0(6),z0(6)];
+m7_x=[z0(7),z0(7)+cl(7),z0(7)+cl(7),z0(7),z0(7)];
+m8_x=[z0(8),z0(8)+cl(8),z0(8)+cl(8),z0(8),z0(8)];
+m9_x=[z0(9),z0(9)+cl(9),z0(9)+cl(9),z0(9),z0(9)];
+m10_x=[z0(10),z0(10)+cl(10),z0(10)+cl(10),z0(10),z0(10)];
+m11_x=[z0(11),z0(11)+cl(11),z0(11)+cl(11),z0(11),z0(11)];
+m12_x=[z0(12),z0(12)+cl(12),z0(12)+cl(12),z0(12),z0(12)];
+m13_x=[z0(13),z0(13)+cl(13),z0(13)+cl(13),z0(13),z0(13)];
+
+
+
+
+m_y=[0,0,bma,bma,0];
+%vals=psivals(avec,zvec,psi,zvec(bmloc),rlocs);
+%disp(zvec(bmloc))
+vals=psivals(avec,zvec,psi,zvec(bmloc2),rlocs);
+val1=psivals(avec,zvec,psi,zvec(bmloc),rloc1);
+val2=psivals(avec,zvec,psi,zvec(bmloc2),rloc2);
+if val1 > val2, vals=psivals(avec,zvec,psi,zvec(bmloc2),rlocs);...
+else vals=psivals(avec,zvec,psi,zvec(bmloc),rlocs);end
+
+valic=psivals(avec,zvec,psi,zvec(bmlocic),tube_radius);
+psi_lim_prof=2*pi*cumtrapz(avec',avec'.*bt(:,bmloc2));
+rmaxlim=interp1(psi_lim_prof,avec,valic);
+rlocs2=.01:.01:rmaxlim;
+vals2=psivals(avec,zvec,psi,zvec(bmloc2),rlocs2);
+subplot(2,1,1);
+hold off
+%con1=contour(zvec,avec,psi,[val1,val1],'b','linewidth',2);
+%scon=size(con1);
+%xcleft=find(con1(1,2:scon(2))<=xloc_left,1,'last');
+%xcright=find(con1(1,2:scon(2))>=xloc_right,1,'first');
+
+%con2=contour(zvec,avec,psi,[val2,val2],'r','linewidth',2);
+%scon=size(con2);
+%xcleft2=find(con2(1,2:scon(2))<=xloc2_left,1,'last');
+%xcright2=find(con2(1,2:scon(2))>=xloc2_right,1,'first');
+
+%con1max=max(con1(2,xcleft:xcright));
+%con2max=max(con2(2,xcleft2:xcright2));
+%if con1max > rloc1, val=val2; else val=val1;end
+val=min(val1,val2);
+
+
+
+contour(zvec,avec,psi,vals2,'c','linewidth',2);
+hold on
+contour(zvec,avec,psi,vals,'b','linewidth',2);
+contour(zvec,avec,psi,[valic,valic],'r','linewidth',2);
+contour(zvec,avec,psi,[val,val],'r','linewidth',2);
+
+target_x=[geop.target.z,geop.target.z,5];
+target_y=[0,geop.target.r,geop.target.r];
+plot(geop.vessel.z,geop.vessel.r,'k',target_x,target_y,'k',tube_x,tube_y,'c--',skimmer_x,skimmer_y1,'k',...
+    skimmer_x,skimmer_y2,'k',window_x,window_y,'c',icant_x,icant_y,'r',lim_x,lim_y,'k',lim2_x,lim2_y,'k','linewidth',2);
+% contour(zvec,avec,bt,[B_3ce,B_3ce],'color',[1,.55,0],'linewidth',2);
+%contour(zvec,avec,bt,[B_2ce,B_2ce],'m','linewidth',2);
+% contour(zvec,avec,bt,[B_ce,B_ce],'g','linewidth',2);
+yrng=ylim;
+plot([1,1]*zprobe,yrng,'k--',[1,1]*zskim,yrng,'k--');
+grid
+%text(3.2,-.06,['Res. distances = ',label_reslocs]);
+%text(3.2,-.04,['ICH frequency = ',num2str(f_i/1.e6),' MHz']);
+title(['Flux tube mapping and \omega = \omega_{ce} contours, Shot = ',num2str(shotno)]);
+h=ylabel('R  (m)');
+set(h,'fontsize',22,'fontweight','bold');
+h=xlabel('Z  (m)');
+set(h,'fontsize',22,'fontweight','bold');
+axis([0,zmax,0,.2])
+set(gca,'Fontsize',22,'fontweight','bold');
+% set(findall(gcf,'type','text'),'fontsize',fontsize,'fontweight',fontweight)
+subplot(2,1,2)
+
+hp=plot(zvec,bt(1,:),'b',m1_x,m_y,'r',m2_x,m_y,'r',m3_x,m_y,'r',m4_x,m_y,'r',...
+                      m5_x,m_y,'r',m6_x,m_y,'r',m7_x,m_y,'r',m8_x,m_y,'r',...
+                      m9_x,m_y,'r',m10_x,m_y,'r',m11_x,m_y,'r',m12_x,m_y,'r',...
+                      m13_x,m_y,'r',...
+                      'linewidth',2);
+%set(hp(17),'color',[1,.55,0.]);
+grid
+xrng=xlim;yrng=ylim;
+%text(.01*diff(xrng)+xrng(1),B_ce+.12,'\omega = \omega_{ce}','color','g');
+%text(.01*diff(xrng)+xrng(1),B_2ce+.12,'\omega = \omega_{2ce}','color','m');
+%text(.01*diff(xrng)+xrng(1),.4-.12,'\omega = \omega_{3ce}','color',[1.,.55,0]);
+%text(zvec(iant1)-.2,.9*diff(yrng)+yrng(1),['\omega / \omega_{ci} = ',num2str(f_i/(b_ant*15.2e6/m_i),'%4.2f'),' at antenna'])
+
+title('mod B on axis');
+h=ylabel('|B|  (T)');
+set(h,'fontsize',22,'fontweight','bold');
+h=xlabel('Z  (m)');
+set(h,'fontsize',22,'fontweight','bold');
+                  
+text(m1_x(1)+.15*cl(1),0.05*bma,'1','fontsize',14);
+text(m2_x(1)+.15*cl(1),0.05*bma,'2','fontsize',14);
+text(m3_x(1)+.15*cl(1),0.05*bma,'3','fontsize',14);
+text(m4_x(1)+.15*cl(1),0.05*bma,'4','fontsize',14);
+text(m5_x(1)+.15*cl(1),0.05*bma,'5','fontsize',14);
+text(m6_x(1)+.15*cl(1),0.05*bma,'6','fontsize',14);
+text(m7_x(1)+.15*cl(1),0.05*bma,'7','fontsize',14);
+text(m8_x(1)+.15*cl(1),0.05*bma,'8','fontsize',14);
+text(m9_x(1)+.15*cl(1),0.05*bma,'9','fontsize',14);
+text(m10_x(1)+.15*cl(1),0.05*bma,'10','fontsize',14);
+text(m11_x(1)+.15*cl(1),0.05*bma,'11','fontsize',14);
+text(m12_x(1)+.15*cl(1),0.05*bma,'12','fontsize',14);
+text(m13_x(1)+.15*cl(1),0.05*bma,'13','fontsize',14);
+
+%for ii=1:14,text(z0(ii)+cl(1)/4,1.05*bma,num2str(ii));end
+textout1=['C1 = ',num2str(cur(1),'%4.0f'),' amps   ',...
+         'C2 = ',num2str(cur(2),'%4.0f'),' amps   ',...
+		 'C3 = ',num2str(cur(3),'%4.0f'),' amps   ',...
+         'C4 = ',num2str(cur(4),'%4.0f'),' amps   ',...
+         'C5 = ',num2str(cur(5),'%4.0f'),' amps   ',...
+         'C6 = ',num2str(cur(6),'%4.0f'),' amps   ',...
+         'C7 = ',num2str(cur(7),'%4.0f'),' amps'];
+textout2=['C8 = ',num2str(cur(8),'%4.0f'),' amps   ',...
+         'C9 = ',num2str(cur(9),'%4.0f'),' amps   ',...
+		 'C10 = ',num2str(cur(10),'%4.0f'),' amps   ',...
+         'C11 = ',num2str(cur(11),'%4.0f'),' amps   ',...
+         'C12 = ',num2str(cur(12),'%4.0f'),' amps   ',...
+         'C13 = ',num2str(cur(12),'%4.0f'),' amps   '];
+
+
+locs=axis;		 
+
+axis([0,zmax,locs(3),locs(4)]);
+set(gca,'Fontsize',22,'fontweight','bold');
+%set(findall(gcf,'type','text'),'fontsize',fontsize,'fontweight',fontweight)
+text(-.1*locs(2),-.22*locs(4),textout1,'fontsize',12,'fontweight','normal','color','b');	
+text(-.1*locs(2),-.27*locs(4),textout2,'fontsize',12,'fontweight','normal','color','b');
+
+hold off
